@@ -45,8 +45,8 @@ ave3 :: (Integral a) => a -> a -> a -> Double
 ave3 r g b = ((fromIntegral r / 3) + (fromIntegral g / 3) + (fromIntegral b / 3))
 
 -- Translate a w*h image by the vector (x,y) in frequency space.
-shiftFourier :: Int -> Int -> Double -> Double -> CArray (Int,Int) (Complex Double) -> CArray (Int,Int) (Complex Double)
-shiftFourier w h x y img = array ((0,0),(w-1,h-1)) . fmap shift . assocs $ img
+shiftPhase :: Int -> Int -> Double -> Double -> CArray (Int,Int) (Complex Double) -> CArray (Int,Int) (Complex Double)
+shiftPhase w h x y img = array ((0,0),(w-1,h-1)) . fmap shift . assocs $ img
     where
       shift ((u,v),p) = ((u,v),p*exp((-i)*2*pi*(fromIntegral ((indexShift w u)) * x_0 + fromIntegral ((indexShift h v)) * y_0) + 0*pi*i*(toComplex x + toComplex y)))
       h' = fromIntegral h
@@ -67,7 +67,7 @@ modDist m n = if n > (m `div` 2) then (n - m) else n
   -- where a = toFVector $ M.fromLists' M.Par [[1,0,-1,0 :: Double],[0,0,0,0 :: Double]]
         -- b = toFVector $ M.fromLists' M.Par [[0,0,0,0 :: Double],[0,0,0,0 :: Double]]
 
-shiftFFTW w h x y = idftN [0,1] . shiftFourier w h (x) (y) . dftN [0,1]
+shiftFourier w h x y = idftN [0,1] . shiftPhase w h (x) (y) . dftN [0,1]
 
 toImageRGB16 w h rgb = Image w h
                        ( joinColors
@@ -96,7 +96,15 @@ shift w h lr ud img = concat .
                       chunksOf w img
 
 -- https://en.wikipedia.org/wiki/Phase_correlation
--- returns the number of pixels imga must be shifted to overlap imgb
+-- returns descending (by fit) list of candidate numbers of pixels imga must be shifted to overlap imgb
+phaseCorrelation
+  :: (Ix a1, Integral a1, Math.FFT.Base.FFTWReal b,
+      Shapable (a1, a1), IArray a2 (Complex b), IArray a3 (Complex b)) =>
+     a1
+     -> a1
+     -> a2 (a1, a1) (Complex b)
+     -> a3 (a1, a1) (Complex b)
+     -> [((a1, a1), b)]
 phaseCorrelation w h imga imgb = fmax' . assocs . amap (realPart . abs) $ phaseCorrelation' w h imga imgb
     where
       fmax []         = (0,0)
