@@ -16,11 +16,10 @@ tested-with:         GHC == 8.8.1
 library
   hs-source-dirs:      src
   exposed-modules:     AutoAstro
-                       
+                       PhaseCorrelate           
 
   build-depends:       base ^>= 4.13.0.0
                      , strict-concurrency
-                     , massiv
                      , deepseq
                      , vector
                      , JuicyPixels
@@ -42,6 +41,40 @@ library
 
   default-language:    Haskell2010
 
+
+executable AutoAstroProf
+  hs-source-dirs:      app
+  main-is:             Main.hs
+
+  build-depends:       base ^>= 4.13.0.0
+                     , AutoAstro
+                     , strict-concurrency
+                     , deepseq
+                     , vector
+                     , JuicyPixels
+                     , timeit
+                     , fft
+                     , split
+                     , carray
+
+  ghc-options:         -Wall
+                       -O2
+                       -threaded
+                       -rtsopts
+                       "-with-rtsopts=-N -p -s -h -i0.1"
+                       -fprof-auto
+                       -prof
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -Wcompat
+                       -Widentities
+                       -Wredundant-constraints
+                       -fhide-source-paths
+                       -Wmissing-export-lists
+                       -Wpartial-fields
+                       -Wmissing-deriving-strategies
+  default-language:    Haskell2010
+
 executable AutoAstro
   hs-source-dirs:      app
   main-is:             Main.hs
@@ -49,7 +82,6 @@ executable AutoAstro
   build-depends:       base ^>= 4.13.0.0
                      , AutoAstro
                      , strict-concurrency
-                     , massiv
                      , deepseq
                      , vector
                      , JuicyPixels
