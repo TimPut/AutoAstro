@@ -6,29 +6,27 @@ module Main (main) where
 
 import AutoAstro
 import           Codec.Picture
-import           Data.List                    (foldl', nub, sort, sortBy, sortOn)
+import           Data.List                    (foldl')
 import           System.Environment           (getArgs)
 import           System.TimeIt
 
-
-
+main :: IO ()
 main = timeIt $ do
 
   [in1, in2, out] <- getArgs :: IO [FilePath]
 
   -- Read in images
   Image !w !h !d <- getImg in1
-  Image !w2 !h2 !d2 <- getImg in2
-
+  Image _ _ !d2 <- getImg in2
   -- Pack channels into carrays for use by FFTW
-  let p1@(p10,p11,p12) = splitColors d
-      (r1,g1,b1) = ((toComplexArray' id (w) (h)) . fmap fromIntegral) `mapTriple` p1
+  let p1 = splitColors d
+      (r1,g1,b1) = ((toComplexArray id (w) (h)) . fmap fromIntegral) `mapTriple` p1
       -- lum = toComplexArray' id w h $ zipWith3 ave3 p10 p11 p12
   let p2 = splitColors d2
-      (r2,g2,b2) = ((toComplexArray' id (w) (h)) . fmap fromIntegral) `mapTriple` p2
+      (r2,g2,b2) = ((toComplexArray id (w) (h)) . fmap fromIntegral) `mapTriple` p2
 
-  -- Compute phasecorrelation
-  let offsets p q = fmap (\((a,b),c) -> ((modDist (w) a, modDist (h) b),c)) $ phaseCorrelation (w) (h) p q
+  -- Compute phase correlations
+  let offsets p q = fmap (\((a,b),c) -> ((modDist (w) a, modDist (h) b),c)) $ bestFit (w) (h) p q
       r_off = offsets r1 r2
       g_off = offsets g1 g2
       b_off = offsets b1 b2
@@ -48,9 +46,12 @@ main = timeIt $ do
   print go
   print bo
 
-  let r' = shiftFourier w h (fst ro) (snd ro) r2
-      g' = shiftFourier w h (fst go) (snd go) g2
-      b' = shiftFourier w h (fst bo) (snd bo) b2
+  let r' = shiftFourier (fst ro) (snd ro) r2
+      g' = shiftFourier (fst ro) (snd ro) g2
+      b' = shiftFourier (fst ro) (snd ro) b2
+  -- let r' = shiftFourier (0) 300 r2
+      -- g' = shiftFourier (0) 300 g2
+      -- b' = shiftFourier (0) 300 b2
 
   let result = toImageRGB16 w h (r',g',b')
   writeTiff out result
